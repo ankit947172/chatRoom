@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Global Chat App</title>
+  <style>
+    /* Basic styling for the chat app */
+    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f5f5f5; }
+    #chatApp { max-width: 600px; width: 100%; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1); }
+    .chat-header { padding: 16px; background-color: #4CAF50; color: white; font-size: 1.5em; text-align: center; }
+    .chat-messages { height: 400px; overflow-y: auto; padding: 16px; }
+    .chat-message { margin: 8px 0; padding: 8px; border-radius: 4px; background-color: #e0e0e0; }
+    .chat-input { display: flex; padding: 16px; border-top: 1px solid #ddd; }
+    .chat-input input { flex: 1; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+    .chat-input button { padding: 8px 16px; margin-left: 8px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div id="chatApp">
+    <div class="chat-header">Global Chat Room</div>
+    <div class="chat-messages" id="messagesContainer"></div>
+    <div class="chat-input">
+      <input type="text" id="messageInput" placeholder="Type your message..." />
+      <button id="sendButton">Send</button>
+    </div>
+  </div>
+
+  <script type="module">
+    // Import Firebase modules
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+    import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+
+    // Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHHJanF2c4FtmfGMuHrZCSSNpXIGJFYMU",
+      authDomain: "tictactoe-23bf9.firebaseapp.com",
+      databaseURL: "https://tictactoe-23bf9-default-rtdb.firebaseio.com", // Add your database URL here
+      projectId: "tictactoe-23bf9",
+      storageBucket: "tictactoe-23bf9.appspot.com",
+      messagingSenderId: "142714285043",
+      appId: "1:142714285043:web:6eeeb83cea2406a55c8086",
+    };
+
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth();
+
+    // Sign in anonymously
+    signInAnonymously(auth)
+      .then(() => {
+        console.log("User signed in anonymously");
+      })
+      .catch((error) => {
+        console.error("Error signing in:", error);
+      });
+
+    // Elements
+    const messagesContainer = document.getElementById("messagesContainer");
+    const messageInput = document.getElementById("messageInput");
+    const sendButton = document.getElementById("sendButton");
+
+    // Load messages from Firebase
+    const messagesRef = ref(db, "messages");
+
+    // Listen for new messages
+    onValue(messagesRef, (snapshot) => {
+      messagesContainer.innerHTML = ""; // Clear existing messages
+      const messages = snapshot.val();
+      if (messages) {
+        Object.values(messages).forEach((msg) => {
+          displayMessage(msg.text, msg.uid);
+        });
+      }
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    });
+
+    // Display message in the chat
+    function displayMessage(text, uid) {
+      const messageElement = document.createElement("div");
+      messageElement.classList.add("chat-message");
+      messageElement.style.backgroundColor = uid === auth.currentUser.uid ? "#DFF8E7" : "#e0e0e0";
+      messageElement.innerHTML = `<strong>${uid === auth.currentUser.uid ? "You" : "User"}:</strong> ${text}`;
+      messagesContainer.appendChild(messageElement);
+    }
+
+    // Send message to Firebase
+    sendButton.addEventListener("click", sendMessage);
+    messageInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") sendMessage();
+    });
+
+    function sendMessage() {
+      const text = messageInput.value.trim();
+      if (text) {
+        push(messagesRef, { text, uid: auth.currentUser.uid, timestamp: Date.now() })
+          .then(() => {
+            messageInput.value = ""; // Clear the input field
+          })
+          .catch((error) => {
+            console.error("Error sending message:", error);
+          });
+      }
+    }
+  </script>
+</body>
+</html>
